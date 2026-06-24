@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
-"""Strip platform deps for Android cross-compile."""
+"""Strip platform deps for Android cross-compile. v11 - fix lib.rs regex"""
 import os, re
 
 def strip_cargo_toml():
     p = "app/src-tauri/Cargo.toml"
     with open(p) as f: src = f.read()
-    # Remove [target.'cfg(target_os = "linux")'.build-dependencies]
     src = re.sub(r"""\[target\.'cfg\(target_os = "linux"\)'\.build-dependencies\].*?(?=\n\[|\Z)""",
                  "", src, flags=re.DOTALL)
-    # Remove [target.'cfg(target_os = "linux")'.dependencies]
     src = re.sub(r"""\[target\.'cfg\(target_os = "linux"\)'\.dependencies\].*?(?=\n\[|\Z)""",
                  "", src, flags=re.DOTALL)
-    # Remove tauri-plugin-system-info
     src = re.sub(r'^.*tauri-plugin-system-info.*\n?', "", src, flags=re.MULTILINE)
     with open(p, "w") as f: f.write(src)
     for lk in ["app/src-tauri/Cargo.lock"]:
@@ -26,7 +23,8 @@ def strip_build_rs():
 def strip_lib_rs():
     p = "app/src-tauri/src/lib.rs"
     with open(p) as f: src = f.read()
-    src = re.sub(r'^\s*tauri_plugin_system_info.*\n?', "", src, flags=re.MULTILINE)
+    # Remove ANY line containing tauri_plugin_system_info (not just lines starting with it)
+    src = re.sub(r'^.*tauri_plugin_system_info.*\n?', "", src, flags=re.MULTILINE)
     with open(p, "w") as f: f.write(src)
     print("lib.rs ready")
 
