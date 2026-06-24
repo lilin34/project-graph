@@ -1,0 +1,82 @@
+name: Android APK Build
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "app/src-tauri -> target"
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "17"
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Setup Android NDK
+        run: sdkmanager "ndk;27.0.11902837"
+
+      - name: Set identifier and version
+        run: |
+          cd app
+          node -e "
+            const fs = require('fs');
+            const conf = JSON.parse(fs.readFileSync('./src-tauri/tauri.conf.json', 'utf8'));
+            conf.identifier = 'com.graphif.projectgraph';
+            conf.version = '0.0.1';
+            fs.writeFileSync('./src-tauri/tauri.conf.json', JSON.stringify(conf, null, 2));
+          "
+
+      - name: Strip cxx-qt for Android
+        run: python3 .github/scripts/strip-cxxqt-for-android.py
+
+      - name: Build all packages + web app
+        run: pnpm run build:no-tauri
+
+      - name: Regenerate Android project
+        run: |
+          cd app
+          rm -rf src-tauri/gen/android
+          pnpm tauri android init
+
+      - name: Clean stale build artifacts
+        run: |
+          cd app/src-tauri
+          rm -rf target/release/build/project-graph-*
+          rm -rf target/aarch64-linux-android/release/build/project-graph-*
+
+      - name: Build APK
+        run: |
+          cd app
+          pnpm tauri android build --apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-graph-android-apk
+          path: app/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: warn
