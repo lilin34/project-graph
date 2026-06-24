@@ -72,6 +72,22 @@ jobs:
         run: |
           cd app
           pnpm tauri android build --apk
+      - name: Sign APK with debug key
+        run: |
+          keytool -genkey -v -keystore $HOME/debug.keystore \
+            -storepass android -alias androiddebugkey -keypass android \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Debug,OU=Dev,O=ProjectGraph,L=City,S=State,C=US"
+          APK_FILE=$(find app/src-tauri/gen/android -name "*-unsigned.apk" | head -1)
+          echo "Signing: $APK_FILE"
+          $ANDROID_SDK_ROOT/build-tools/*/apksigner sign \
+            --ks $HOME/debug.keystore \
+            --ks-pass pass:android \
+            --ks-key-alias androiddebugkey \
+            --key-pass pass:android "$APK_FILE"
+          mv "$APK_FILE" "${APK_FILE/-unsigned/}"
+          echo "Signed: ${APK_FILE/-unsigned/}"
+
 
       - name: Sign APK with debug key
         run: |
