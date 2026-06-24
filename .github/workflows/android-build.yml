@@ -72,6 +72,7 @@ jobs:
         run: |
           cd app
           pnpm tauri android build --apk
+
       - name: Sign APK with debug key
         run: |
           keytool -genkey -v -keystore $HOME/debug.keystore \
@@ -87,20 +88,6 @@ jobs:
             --key-pass pass:android "$APK_FILE"
           mv "$APK_FILE" "${APK_FILE/-unsigned/}"
           echo "Signed: ${APK_FILE/-unsigned/}"
-
-
-      - name: Sign APK with debug key
-        run: |
-          keytool -genkey -v -keystore \$HOME/debug.keystore -storepass android \
-            -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \
-            -validity 10000 -dname "CN=Debug,OU=Dev,O=ProjectGraph,L=City,S=State,C=US"
-          APK=\$(ls app/src-tauri/gen/android/app/build/outputs/apk/universal/release/*-unsigned.apk 2>/dev/null || ls app/src-tauri/gen/android/app/build/outputs/apk/*/release/*-unsigned.apk 2>/dev/null || ls app/src-tauri/gen/android/app/build/outputs/apk/**/*-unsigned.apk 2>/dev/null)
-          echo "Found APK: \$APK"
-          \$ANDROID_SDK_ROOT/build-tools/*/apksigner sign --ks \$HOME/debug.keystore \
-            --ks-pass pass:android --ks-key-alias androiddebugkey \
-            --key-pass pass:android "\$APK"
-          mv "\$APK" "\${APK/-unsigned/}"
-          echo "Signed APK: \${APK/-unsigned/}"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
