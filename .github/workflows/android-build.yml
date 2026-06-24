@@ -41,13 +41,13 @@ jobs:
       - name: Set identifier and version
         run: |
           cd app
-          node -e '
-            const fs = require("fs");
-            const conf = JSON.parse(fs.readFileSync("./src-tauri/tauri.conf.json", "utf8"));
-            conf.identifier = "com.graphif.projectgraph";
-            conf.version = "0.0.1";
-            fs.writeFileSync("./src-tauri/tauri.conf.json", JSON.stringify(conf, null, 2));
-          '
+          node -e "
+            const fs = require('fs');
+            const conf = JSON.parse(fs.readFileSync('./src-tauri/tauri.conf.json', 'utf8'));
+            conf.identifier = 'com.graphif.projectgraph';
+            conf.version = '0.0.1';
+            fs.writeFileSync('./src-tauri/tauri.conf.json', JSON.stringify(conf, null, 2));
+          "
       - name: Strip cxx-qt for Android
         run: python3 .github/scripts/strip-cxxqt-for-android.py
       - name: Build all packages + web app
@@ -71,8 +71,12 @@ jobs:
           keytool -genkey -v -keystore $HOME/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Debug,OU=Dev,O=ProjectGraph,L=City,S=State,C=US"
           APK_FILE=$(find app/src-tauri/gen/android -name "*-unsigned.apk" | head -1)
           echo "Signing: $APK_FILE"
-          jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore $HOME/debug.keystore -storepass android -keypass android -signedjar "${APK_FILE/-unsigned/}" "$APK_FILE" androiddebugkey
-          echo "Signed: ${APK_FILE/-unsigned/}"
+          BT_VER=$(ls "$ANDROID_SDK_ROOT/build-tools" | sort -V | tail -1)
+          APKSIGNER_JAR="$ANDROID_SDK_ROOT/build-tools/$BT_VER/apksigner.jar"
+          echo "apksigner.jar: $APKSIGNER_JAR"
+          java -jar "$APKSIGNER_JAR" sign             --ks $HOME/debug.keystore             --ks-pass pass:android             --ks-key-alias androiddebugkey             --key-pass pass:android             --out "${APK_FILE/-unsigned/}"             "$APK_FILE"
+          SIGNED="${APK_FILE/-unsigned/}"
+          ls -la "$SIGNED"
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
