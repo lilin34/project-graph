@@ -6,17 +6,16 @@ def strip_cargo_toml():
     path = "app/src-tauri/Cargo.toml"
     with open(path) as f:
         src = f.read()
-    # Remove [target.'cfg(not(target_os = "android"))'.build-dependencies] section (cxx-qt-build)
     src = re.sub(
-        r"\[target\.'cfg\(not\(target_os = "android"\)\)'\.build-dependencies\].*?(?=\n\[|\Z)",
+        r'[target.\'cfg\(not\(target_os = "android"\)\)\'.build-dependencies].*?(?=
+\[|\Z)',
         "", src, flags=re.DOTALL
     )
-    # Remove [target.'cfg(target_os = "linux")'.dependencies] section (cxx/cxx-qt-lib)
     src = re.sub(
-        r"\[target\.'cfg\(target_os = "linux"\)'\.dependencies\].*?(?=\n\[|\Z)",
+        r'[target.\'cfg\(target_os = "linux"\)\'.dependencies].*?(?=
+\[|\Z)',
         "", src, flags=re.DOTALL
     )
-    # Remove tauri-plugin-system-info from main deps
     src = re.sub(r"^tauri-plugin-system-info.*\n?", "", src, flags=re.MULTILINE)
     with open(path, "w") as f:
         f.write(src)
@@ -29,7 +28,7 @@ def strip_build_rs():
     with open(path) as f:
         src = f.read()
     src = re.sub(
-        r"#\[cfg\(not\(target_os = "android"\)\)\]\s*\{.*?\n\s*\}",
+        r"#\\[cfg\\(not\\(target_os = \"android\"\\)\\)\\]\\s*\\{.*?\\n\\s*\\}",
         "/* cxx-qt stripped for Android */",
         src, flags=re.DOTALL
     )
@@ -41,7 +40,7 @@ def strip_lib_rs():
     path = "app/src-tauri/src/lib.rs"
     with open(path) as f:
         src = f.read()
-    src = re.sub(r"^\s*tauri_plugin_system_info.*\n?", "", src, flags=re.MULTILINE)
+    src = re.sub(r"^\\s*tauri_plugin_system_info.*\\n?", "", src, flags=re.MULTILINE)
     with open(path, "w") as f:
         f.write(src)
     print("lib.rs ready")
@@ -51,7 +50,7 @@ def strip_capabilities():
     if os.path.exists(path):
         with open(path) as f:
             src = f.read()
-        src = re.sub(r'\s*"system-info:allow-all",?\n?', "", src)
+        src = re.sub(r'\\s*"system-info:allow-all",?\\n?', "", src)
         with open(path, "w") as f:
             f.write(src)
         print("capabilities ready")
